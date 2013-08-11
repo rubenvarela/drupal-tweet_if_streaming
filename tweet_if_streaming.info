@@ -1,0 +1,4 @@
+name = Fortaleza - Tweet if Streaming
+description = Show a tweet that matches #envivo or links to /envivo if fortalezapr is streaming via Ustream.
+core = 7.x
+package = "Other"

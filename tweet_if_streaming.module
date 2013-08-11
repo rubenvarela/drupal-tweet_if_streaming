@@ -1,0 +1,154 @@
+<?php
+/**
+ * @file
+ * A module that displays the latest Tweet from an account matching a hastag 
+ * if a user is streaming via Ustream.
+ *
+ * Author: Rubén Varela
+ * Date: 2013-08-11
+ *
+ */
+/**
+ * Implements hook_help.
+ *
+ * Displays help and module information.
+ *
+ * @param path
+ *   Which path of the site we're using to display the help.
+ * @param arg
+ *   Array that holds the current path as returned from the arg() function
+ */
+
+function tweet_if_streaming_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#tweet_if_streaming': 
+      $help_text = '<p>If the ustream user fortalezapr is streaming via '.
+      ' Ustream, show the latest tweet from @fortalezapr that uses the ' . 
+      '#envivo hashtag.</p>';
+
+      $help_text = $help_text . '<p>Simply add the '. 
+      'tweet_if_streaming_print() function in your theme where '. 
+      'you\'d like the tweet to appear.</p>';
+      return $help_text;
+  }
+}
+
+/**
+ * Implement a simple function to test if it works being included in the footer.
+ */
+function tweet_if_streaming_test() {
+  return "<h2>TEST</h2>";
+}
+
+/**
+ * Main function to be included.
+ * 
+ * If the Ustream account is streaming,
+ * Print the latest tweet matching a hashtag or URL.
+ */
+function tweet_if_streaming_print() {
+  if ((include 'constants.inc') == 1) {
+    if(tweet_if_streaming_ustream_live($ustream)) {
+      $tweet = tweet_if_streaming_last_tweet_matching($library_path, $twitter_crendentials, $twitter_info);
+      if ($tweet !== FALSE) {
+         print tweet_if_streaming_final_html($tweet);
+      }
+    }
+  }
+}
+
+/**
+ * Check if ustream is live. If it is, returns true. If not, return FALSE
+ * @param $ustream_array
+ *  Array containing the Ustream account and developer key.
+ */
+function tweet_if_streaming_ustream_live($ustream_array) {
+  $includeFile = file_get_contents ('http://api.ustream.tv/json/channel/' . $ustream_array['channel'] . '/getValueOf/status?key=' . $ustream_array['dev_key']);
+  $json_output = json_decode ($includeFile);
+  $live = $json_output->results;
+  //$live = 'live'; // Uncomment to debug. 
+  return ($live === 'live') ? TRUE : FALSE;
+}
+
+/**
+ * Connect to Twitter
+ * Get the latest tweets from the specified account. 
+ * If one matches the predefined hashtag, return it.
+ * If not, search for the URL specified and if it matches, return it.
+ * If neither is found, return false.
+ *
+ * @param $lpath
+ *  Library Path. Path to the location of the TwitterAPIExchange.
+ *
+ * @param $twitter_creds
+ *  Array containing the credentials for the Twitter account.
+ *
+ * @param $twitter_info
+ *  Array with the information to search in Twitter
+ */
+function tweet_if_streaming_last_tweet_matching( $lpath, $twitter_creds, 
+                                                  $twitter_info) {
+    if(module_load_include('php', 'tweet_if_streaming', $lpath . '/TwitterAPIExchange') !== FALSE) {
+      $settings = array(
+        'oauth_access_token' => $twitter_creds['oauth_token'],
+        'oauth_access_token_secret' => $twitter_creds['oauth_secret'],
+        'consumer_key' => $twitter_creds['consumer_key'],
+        'consumer_secret' => $twitter_creds['consumer_secret']
+      );
+      $url = 'https://api.twitter.com/1.1/statuses/user_timeline.json';
+      /* The Twitter account is selected here: */
+      $getfield = '?screen_name=' . $twitter_info['account'];
+      $requestMethod = 'GET';
+
+      $twitter = new TwitterAPIExchange($settings);
+
+      $output = $twitter->setGetfield($getfield)
+                        ->buildOauth($url, $requestMethod)
+                        ->performRequest();
+      $tweets_decoded = json_decode ($output, TRUE);
+
+      foreach ($tweets_decoded as $t) {
+        /* The hash tag is selected here */
+          if(stripos ($t['text'], $twitter_info['hashtag']) ) {
+            return $t['text'];
+          } else {
+            foreach ($t['entities']['urls'] as $url) {
+              if(stripos ($url['expanded_url'], $twitter_info['url']) ) {
+                return $t['text'];
+              }
+            }
+          }
+      }
+  }
+  return FALSE;
+}
+
+/**
+ * Final markup to print.
+ *  @param $text_to_print
+ *    Text to be printed inside the markup.
+ */
+function tweet_if_streaming_final_html ($text_to_print) {
+  global $base_url;
+  $str = '
+  <div style="margin-bottom:-20px;">
+    <table width="100%" border="0" align="center" cellpadding="2" cellspacing="0">
+      <tr>
+        <td width="24" align="left" valign="middle" bgcolor="#333333">
+          <img src="' . $base_url . '/img/record_icon.png" width="24" height="24" alt="En Directo" />
+        </td>
+        <td align="right" valign="middle" bgcolor="#333333">
+          <div align="left" style="width:180px; float:left;">
+            <img src="' . $base_url . '/img/endirecto_text.png" width="180" height="24" />
+          </div>
+          <div class="live_text_link">
+            <a href="' . $base_url . '/envivo" class="live_text_link">' . $text_to_print . '</a>
+          </div>
+        </td>
+      </tr>
+    </table>
+    <br/>
+    <br/>
+  </div>';
+  return $str;
+}
