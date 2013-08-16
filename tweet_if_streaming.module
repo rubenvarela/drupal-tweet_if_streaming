@@ -185,14 +185,11 @@ function tweet_if_streaming_block_info() {
  */
 function tweet_if_streaming_block_view($block_name = '') {
   if($block_name == 'tweet_if_streaming') {
-
     $content = tweet_if_streaming_print();
-
     $block = array(
       'subject' => t(''),
       'content' => $content,
       );
     return $block;
-
   }
 }
