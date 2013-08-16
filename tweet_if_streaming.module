@@ -34,7 +34,7 @@ function tweet_if_streaming_help($path, $arg) {
 }
 
 /**
- * Implement a simple function to test if it works being included in the footer.
+ * Implement a simple function to test if it works.
  */
 function tweet_if_streaming_test() {
   return "<h2>TEST</h2>";
@@ -51,10 +51,12 @@ function tweet_if_streaming_print() {
     if(tweet_if_streaming_ustream_live($ustream)) {
       $tweet = tweet_if_streaming_last_tweet_matching($library_path, $twitter_crendentials, $twitter_info);
       if ($tweet !== FALSE) {
-         print tweet_if_streaming_final_html($tweet);
+         //print tweet_if_streaming_final_html($tweet);
+         return tweet_if_streaming_final_html($tweet);
       }
     }
   }
+  return FALSE;
 }
 
 /**
@@ -66,7 +68,7 @@ function tweet_if_streaming_ustream_live($ustream_array) {
   $includeFile = file_get_contents ('http://api.ustream.tv/json/channel/' . $ustream_array['channel'] . '/getValueOf/status?key=' . $ustream_array['dev_key']);
   $json_output = json_decode ($includeFile);
   $live = $json_output->results;
-  //$live = 'live'; // Uncomment to debug. 
+  $live = 'live'; // Uncomment to debug. 
   return ($live === 'live') ? TRUE : FALSE;
 }
 
@@ -151,4 +153,14 @@ function tweet_if_streaming_final_html ($text_to_print) {
     <br/>
   </div>';
   return $str;
+}
+
+/**
+ * Implement hook_preprocess_page();
+ */
+function tweet_if_streaming_preprocess_page(&$vars) {
+  $var = tweet_if_streaming_print();
+  if($var !== FALSE) {
+    $vars['tweet_fortaleza'] = $var;
+  }
 }
