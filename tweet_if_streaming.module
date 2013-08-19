@@ -173,7 +173,7 @@ function tweet_if_streaming_preprocess_page(&$vars) {
 function tweet_if_streaming_block_info() {
   $blocks = array();
   $blocks['tweet_if_streaming'] = array (
-    'info' => t('Tweet the last tweet matching when using ustream.'), 
+    'info' => t('Tweet content.'), 
     'cache'=> DRUPAL_NO_CACHE,
     );
   return $blocks;
